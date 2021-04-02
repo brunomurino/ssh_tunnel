@@ -1,0 +1,14 @@
+[package]
+name = "ssh_tunnel"
+version = "0.1.0"
+authors = ["Bruno Murino <bfsmurino@gmail.com>"]
+edition = "2021"
+
+[dependencies]
+clap = { version = "3.0.0-beta.2", features = ["yaml"] }
+subprocess = "0.2.6"
+dirs = "3.0.1"
+
+[lib]
+name = "ssh_tunnel"
+path = "src/tunnel.rs"
