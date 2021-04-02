@@ -2,7 +2,7 @@
 name = "ssh_tunnel"
 version = "0.1.0"
 authors = ["Bruno Murino <bfsmurino@gmail.com>"]
-edition = "2021"
+edition = "2018"
 license = "MIT"
 description = "A tool open and list pre-defined ssh tunnels"
 readme = "README.md"

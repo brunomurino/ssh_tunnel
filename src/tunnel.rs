@@ -12,10 +12,10 @@ pub struct Tunnel;
 impl Tunnel {
     pub fn app() -> App<'static>  {
         let core_app = clap_app!(tunnel =>
-            (version: "1.3")
-            (author: "Someone E. <someone_else@other.com>")
+            (version: "0.1")
+            (author: "Bruno Murino <bfsmurino@gmail.com>")
             (about: "controls testing features")
-            // (@setting ArgRequiredElseHelp)
+            (@setting ArgRequiredElseHelp)
         );
 
         let app = core_app
@@ -30,15 +30,8 @@ impl Tunnel {
         match matches.subcommand() {
             Some(("open", matches)) => { TunnelOpen::run_from_matches(matches); },
             Some(("list", matches)) => { TunnelList::run_from_matches(matches); },
-            _                         => { println!("No"); },
+            _                       => { println!("No"); },
         }
     }
 
 }
-
-// fn main() {
-//     println!("Hello from tunnel main");
-//     let app = Tunnel::app();
-//     let matches = app.get_matches();
-//     Tunnel::run(&matches);
-// }

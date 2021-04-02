@@ -9,9 +9,9 @@ impl TunnelList {
     pub fn app() -> App<'static>  {        
         let core_app = clap_app!(list =>
             (visible_alias: "ls")
+            (version: "0.1")
+            (author: "Bruno Murino <bfsmurino@gmail.com>")
             (about: "Lists currently open SSH tunnels started via \"ssh -f\"")
-            (version: "1.2")
-            (author: "Someone E. <someone_else@other.com>")
             (@arg verbose: -v --verbose "Print test information verbosely")
         );
         let app = core_app;

@@ -13,9 +13,9 @@ impl TunnelOpen {
     pub fn app() -> App<'static>  {        
         let core_app = clap_app!(open =>
             (visible_alias: "o")
+            (version: "0.1")
+            (author: "Bruno Murino <bfsmurino@gmail.com>")
             (about: "Opens pre-defined SSH tunnels")
-            (version: "1.2")
-            (author: "Someone E. <someone_else@other.com>")
         );
         let app = core_app;
         app
