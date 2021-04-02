@@ -3,6 +3,13 @@ name = "ssh_tunnel"
 version = "0.1.0"
 authors = ["Bruno Murino <bfsmurino@gmail.com>"]
 edition = "2021"
+license = "MIT"
+description = "A tool open and list pre-defined ssh tunnels"
+readme = "README.md"
+homepage = "https://github.com/brunomurino/ssh_tunnel"
+repository = "https://github.com/brunomurino/ssh_tunnel"
+keywords = ["cli", "ssh", "tunnel"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 clap = { version = "3.0.0-beta.2", features = ["yaml"] }
