@@ -6,6 +6,9 @@ use tunnel_list::TunnelList;
 pub mod tunnel_open;
 use tunnel_open::TunnelOpen;
 
+pub mod tunnel_kill_all;
+use tunnel_kill_all::TunnelKillAll;
+
 // use crate::log_matches;
 #[derive(Debug)]
 pub struct Tunnel {
@@ -24,7 +27,8 @@ impl Tunnel {
 
         let app = core_app
             .subcommand(TunnelList::app())
-            .subcommand(TunnelOpen::app());
+            .subcommand(TunnelOpen::app())
+            .subcommand(TunnelKillAll::app());
 
         app
     }
@@ -34,6 +38,7 @@ impl Tunnel {
         match matches.subcommand() {
             Some(("open", matches)) => { TunnelOpen::run_from_matches(matches); },
             Some(("list", matches)) => { TunnelList::run_from_matches(matches); },
+            Some(("kill", matches)) => { TunnelKillAll::run_from_matches(matches); },
             _                       => { println!("No"); },
         }
     }

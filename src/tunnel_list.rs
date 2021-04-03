@@ -1,6 +1,6 @@
 
 // use std::env;
-use subprocess::{Exec};
+use subprocess::{Exec, PopenError};
 use clap::{App, clap_app, ArgMatches};
 
 pub struct TunnelList;
@@ -18,34 +18,37 @@ impl TunnelList {
         app
     }
 
-    pub fn run_from_matches(matches: &ArgMatches) {
+    pub fn run_from_matches(matches: &ArgMatches) -> Vec<String> {
         println!("Tunnel List matches: {:?}", matches);
         TunnelList::run()
     }
 
-    pub fn run() {
+    pub fn run() -> Vec<String> {
+
+        let lines = Self::get_list_of_open_tunnels().unwrap();
+
+        // println!("\n{:#?}", lines);
         
-        match {
+        if lines.len() > 0 {
+            for lin in &lines {
+                println!("{}", lin);
+            }
+        } else {
+            println!("No SSH tunnels open");
+        }
+
+        println!("Reached End Gracefully");
+
+        lines
+    }
+
+    pub fn get_list_of_open_tunnels() -> Result<Vec<String>, PopenError> {
+        let out = {
             Exec::cmd("ps").arg("-eo").arg("pid,command")
             | Exec::cmd("grep").arg("ssh -f")
             | Exec::cmd("grep").arg("-v").arg("grep")
-        }.capture() {
-            Err(why) => {
-                println!("couldn't spawn wc: {}", why);
-            },
-            Ok(out) => {
-                let out = out.stdout_str();
-                let lines: Vec<&str> = out.lines().collect();
-                match lines.len() {
-                    0 => println!("No SSH tunnels open"),
-                    _ => {
-                        for line in lines {
-                            println!("{}", line);
-                        }
-                    }
-                }
-            },
-        };
-        println!("Reached End Gracefully")
+        }.capture()?.stdout_str();
+        let lines: Vec<String> = out.lines().map(str::to_string).collect();
+        Ok(lines)
     }
 }
