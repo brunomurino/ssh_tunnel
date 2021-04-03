@@ -7,8 +7,12 @@ pub mod tunnel_open;
 use tunnel_open::TunnelOpen;
 
 // use crate::log_matches;
+#[derive(Debug)]
+pub struct Tunnel {
+    host_name: String,
+    source_file: String,
+}
 
-pub struct Tunnel;
 impl Tunnel {
     pub fn app() -> App<'static>  {
         let core_app = clap_app!(tunnel =>
