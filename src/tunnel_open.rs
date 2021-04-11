@@ -1,10 +1,10 @@
 use clap::{App, clap_app, ArgMatches};
 use std::path::Path;
 // use std::env;
-use std::{fs, io, io::{Write}, collections::BTreeMap};
+use std::{fs, io, io::{Write}, collections::{BTreeMap, HashMap}};
+use itertools::Itertools;
 use subprocess::{Exec, ExitStatus};
 use dirs::home_dir;
-use crate::Tunnel;
 
 use crate::tunnel_list::TunnelList;
 
@@ -17,17 +17,19 @@ impl TunnelOpen {
             (version: "0.1")
             (author: "Bruno Murino <bfsmurino@gmail.com>")
             (about: "Opens pre-defined SSH tunnels")
+            (@arg debug: -d --debug "Print information verbosely")
         );
         let app = core_app;
         app
     }
 
     pub fn run_from_matches(matches: &ArgMatches) {
-        println!("Tunnel Open matches: {:?}", matches);
-        TunnelOpen::run()
+        let debug = matches.is_present("debug");
+        if debug {println!("Tunnel Open matches: {:?}", matches);}
+        TunnelOpen::run(debug)
     }
 
-    fn get_lines_with_include(lines_from_file: &Vec<&str>) -> Vec<String> {
+    fn get_lines_with_include(lines_from_file: &Vec<String>) -> Vec<String> {
         lines_from_file
             .iter()
             .filter_map(|line| {
@@ -38,63 +40,91 @@ impl TunnelOpen {
             .collect::<Vec<_>>()
     }
 
-    fn get_lines_with_host(lines_from_file: &Vec<&str>) -> Vec<String> {
-        lines_from_file
-            .iter()
-            .filter_map(|line| {
-                if line.contains("Host ") & !line.starts_with("Host *") {
-                    Some(line.replace("Host ",""))
-                } else { None }
-            })
-            .collect::<Vec<_>>()
+    fn get_lines_with_host<'a>(lines_from_file: &'a Vec<String>) -> HashMap<String, HashMap<String,String>> {
+
+        let mut current_host = String::from("");
+        let mut all_hosts_data = HashMap::new();
+
+        for lin in lines_from_file {
+            if lin.contains("Host ") & !lin.starts_with("Host *") {
+                current_host = lin.split_whitespace().nth(1).unwrap().to_string();
+                let current_host_data = HashMap::new();
+                all_hosts_data.insert(current_host.clone(), current_host_data);
+            }
+            if lin == &"" {
+                current_host = String::from("");
+            }
+            if &current_host != &String::from("") {
+                let host_data_name = lin.trim().split_whitespace().nth(0).unwrap().to_string();
+                let foo = lin.replace(&host_data_name,"").to_string();
+                let host_data_content = foo.trim().to_string();
+                all_hosts_data.get_mut(&current_host).unwrap().insert(host_data_name, host_data_content);
+                // println!("{} - {} ---- {}", current_host, host_data_name, host_data_content);
+            }
+        }
+        
+        all_hosts_data.retain(|_, v| v.contains_key("LocalForward"));
+        
+        // println!("{:#?}", all_hosts_data);
+
+        all_hosts_data
     }
 
-    fn parse_file_lines(filepath: &Path) -> (Vec<String>,Vec<String>) {
+    fn parse_file_lines(filepath: &Path) -> (HashMap<String, HashMap<String,String>>,Vec<String>) {
         let data = fs::read_to_string(filepath).expect("Unable to read file");
-        let lines_from_file: Vec<&str> = data.lines().clone().collect::<Vec<_>>();
+        let lines_from_file: Vec<String> = data.lines().clone().map(str::to_string).collect::<Vec<_>>();
+        
+        let lines_with_host = Self::get_lines_with_host(&lines_from_file);
+        let lines_with_include = Self::get_lines_with_include(&lines_from_file);
         (
-            Self::get_lines_with_host(&lines_from_file),
-            Self::get_lines_with_include(&lines_from_file),
+            lines_with_host,
+            lines_with_include,
         )
     }
 
-    fn process_file(filepath: &Path) -> Vec<Tunnel> {
+    fn process_file(filepath: &Path) -> HashMap<String, HashMap<String,String>> {
 
-        println!("Processing {}", filepath.to_str().unwrap());
+        // println!("Processing {}", filepath.to_str().unwrap()); // only on debug
 
         let str_filepath = &filepath.to_str().unwrap().to_string();
 
-        let mut hash_of_hosts: Vec<Tunnel> = Vec::new();
+        let mut final_hosts = HashMap::new();
 
-        let (hosts, includes) = Self::parse_file_lines(filepath);
-
-        for host in hosts.iter() {
-            hash_of_hosts.push(Tunnel{host_name: host.to_string(), source_file: str_filepath.to_string()})
+        let (mut hosts, includes) = Self::parse_file_lines(filepath);
+        
+        for (key, _) in hosts.clone().into_iter() {
+            hosts.get_mut(&key).unwrap().insert("source_file".to_string(), str_filepath.to_string());
         }
+        
+        final_hosts.extend(hosts);
 
         for file_to_look in includes {
-            let mut temp_map_of_tunnels_from_file = Self::process_file(&Path::new(&file_to_look));
-            hash_of_hosts.append(&mut temp_map_of_tunnels_from_file);
+            let temp_map_of_tunnels_from_file = Self::process_file(&Path::new(&file_to_look));
+            final_hosts.extend(temp_map_of_tunnels_from_file);
         }
-        hash_of_hosts
+
+        final_hosts
     }
 
-    fn print_tunnel_list_to_user(btree_of_hosts: &BTreeMap<usize, &Tunnel>) {
+    fn print_tunnel_list_to_user(btree_of_hosts: &BTreeMap<usize, &HashMap<String, String>>) {
         // println!("{:#?}", btree_of_hosts);
         println!("List of SSH Tunnels configured:\n");
         for (i, tunnel) in btree_of_hosts {
-            println!("  {}) {} ({})", i, tunnel.host_name, tunnel.source_file);
+            println!("  {}) {}", i, tunnel.get("Host").unwrap());
         }
     }
 
-    pub fn run() {
+    pub fn run(debug: bool) {
+        if debug {println!("DEBUG is {}", debug);}
         let home = home_dir().unwrap();
         let filepath = home.join(".ssh/config");
 
         let list_of_hosts = Self::process_file(&filepath);
+        // println!("{:#?}", list_of_hosts);
         let mut btree_of_hosts = BTreeMap::new();
-        for (i, host) in list_of_hosts.iter().enumerate() {
-            btree_of_hosts.insert(i+1, host);
+
+        for (i, host) in list_of_hosts.keys().sorted().enumerate() {
+            btree_of_hosts.insert(i+1, list_of_hosts.get(host).unwrap());
         }
 
         Self::print_tunnel_list_to_user(&btree_of_hosts);
@@ -107,11 +137,11 @@ impl TunnelOpen {
             .expect("Failed to read line");
         let user_choice: usize = user_choice.trim().parse().expect("Please type a number!");
 
-        let chosen_host = btree_of_hosts.get(&user_choice).expect("Key not found");
+        let chosen_host = btree_of_hosts.get(&user_choice).expect("Key not found").get("Host").unwrap();
 
-        println!("You choose: {}, Host: {}", user_choice, chosen_host.host_name);
+        println!("You choose: {}, Host: {}", user_choice, chosen_host);
 
-        let exit_status = Exec::cmd("ssh").arg("-f").arg("-N").arg(&chosen_host.host_name).join().unwrap();
+        let exit_status = Exec::cmd("ssh").arg("-f").arg("-N").arg(&chosen_host).join().unwrap();
 
         match exit_status {
             ExitStatus::Exited(exi) => println!("Exited with {}", exi),
@@ -122,6 +152,6 @@ impl TunnelOpen {
 
         TunnelList::run();
         
-        println!("\nReached End Gracefully");
+        // println!("\nReached End Gracefully");  // only on debug
     }
 }

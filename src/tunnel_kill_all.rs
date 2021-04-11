@@ -20,18 +20,17 @@ impl TunnelKillAll {
         app
     }
 
-    pub fn run_from_matches(matches: &ArgMatches) {
-        println!("Tunnel List matches: {:?}", matches);
+    pub fn run_from_matches(_matches: &ArgMatches) {
+        // println!("Tunnel List matches: {:?}", matches); // only on debug
         TunnelKillAll::run()
     }
 
     pub fn run() {
         let list_of_open_tunnels = TunnelList::run();
-        for open_tunnel in list_of_open_tunnels {
-            let first_word: Vec<&str> = open_tunnel.split_whitespace().collect();
-            println!("{}", first_word[0]);
-            Exec::cmd("kill").arg(&first_word[0]).join().unwrap();
+        for open_tunnel in list_of_open_tunnels.keys() {
+            println!("{}", open_tunnel);
+            Exec::cmd("kill").arg(&open_tunnel).join().unwrap();
         }
-        println!("Reached End Gracefully")
+        // println!("Reached End Gracefully")  // only on debug
     }
 }
