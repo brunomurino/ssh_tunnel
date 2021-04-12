@@ -24,7 +24,7 @@ jobs:
 
       - name: Create Tar for Homebrew
         run: |
-          tar -czf ./target/release/ssh_tunnel-mac.tar.gz ./target/release/ssh_tunnel
+          cd target/release/ && tar -czf ssh_tunnel-mac.tar.gz ssh_tunnel
 
       - name: Create Release
         id: create_release
